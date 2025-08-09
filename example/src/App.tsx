@@ -1,4 +1,4 @@
-import { View, StyleSheet, Button, Modal } from 'react-native';
+import { View, StyleSheet, Button } from 'react-native';
 import { Toaster, showToast } from 'rn-snappy-toast';
 
 export default function App() {
