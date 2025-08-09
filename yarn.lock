@@ -4711,17 +4711,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cliui@npm:^7.0.2":
-  version: 7.0.4
-  resolution: "cliui@npm:7.0.4"
-  dependencies:
-    string-width: ^4.2.0
-    strip-ansi: ^6.0.0
-    wrap-ansi: ^7.0.0
-  checksum: ce2e8f578a4813806788ac399b9e866297740eecd4ad1823c27fd344d78b22c5f8597d548adbcc46f0573e43e21e751f39446c5a5e804a12aace402b7a315d7f
-  languageName: node
-  linkType: hard
-
 "cliui@npm:^8.0.1":
   version: 8.0.1
   resolution: "cliui@npm:8.0.1"
@@ -6407,16 +6396,6 @@ __metadata:
   dependencies:
     invariant: ^2.2.4
   checksum: 7a405f20f0bc056c7409be6d00bf9ad5203cb461301b1ecf0a03380138965ea4fa8e1e2456035a2ea3cb6adb44eac3b40cb2e3a5328a4b91054911982029ad15
-  languageName: node
-  linkType: hard
-
-"expo-screen-orientation@npm:^8.1.7":
-  version: 8.1.7
-  resolution: "expo-screen-orientation@npm:8.1.7"
-  peerDependencies:
-    expo: "*"
-    react-native: "*"
-  checksum: 31b24c554c0027e7dcc6d03b9639bbd0d64957453be671d88fe8688e4d2048749478d49405009d8b45d452da7e425bd05c64c5c12dff847782782693a5f0f738
   languageName: node
   linkType: hard
 
@@ -10862,7 +10841,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prop-types@npm:^15.7.2, prop-types@npm:^15.8.1":
+"prop-types@npm:^15.8.1":
   version: 15.8.1
   resolution: "prop-types@npm:15.8.1"
   dependencies:
@@ -11090,21 +11069,6 @@ __metadata:
     escape-string-regexp: ^5.0.0
     fast-glob: ^3.3.3
   checksum: 6356c362c517c49e17d54ee764c3566ba71491fa0d755618ecf2ca548348668e84fe448c24066645983acbc2bd4c0ed47594f9b3ec9dcc0558c0fd9594d2391e
-  languageName: node
-  linkType: hard
-
-"react-native-vector-icons@npm:^10.0.0":
-  version: 10.3.0
-  resolution: "react-native-vector-icons@npm:10.3.0"
-  dependencies:
-    prop-types: ^15.7.2
-    yargs: ^16.1.1
-  bin:
-    fa-upgrade.sh: bin/fa-upgrade.sh
-    fa5-upgrade: bin/fa5-upgrade.sh
-    fa6-upgrade: bin/fa6-upgrade.sh
-    generate-icon: bin/generate-icon.js
-  checksum: 5c431fd9a8e6efd355e34ed28ca7fa7eed30e89362280cbd1e474e6d16148c6c37f5c950a525ec0b428c79dc74b9fb7a61171fc509b6ab253e111456f3e49b71
   languageName: node
   linkType: hard
 
@@ -11628,7 +11592,6 @@ __metadata:
     "@babel/core": ^7.20.0
     "@expo/metro-runtime": ~5.0.4
     expo: ~53.0.20
-    expo-screen-orientation: ^8.1.7
     expo-status-bar: ~2.2.3
     react: 19.0.0
     react-dom: 19.0.0
@@ -11648,7 +11611,6 @@ __metadata:
     "@eslint/eslintrc": ^3.3.0
     "@eslint/js": ^9.22.0
     "@evilmartians/lefthook": ^1.5.0
-    "@expo/vector-icons": ^14.0.0
     "@react-native/babel-preset": 0.78.2
     "@react-native/eslint-config": ^0.78.0
     "@release-it/conventional-changelog": ^9.0.2
@@ -11664,14 +11626,11 @@ __metadata:
     react: 19.0.0
     react-native: 0.79.5
     react-native-builder-bob: ^0.40.8
-    react-native-vector-icons: ^10.0.0
     release-it: ^17.10.0
     typescript: ^5.8.3
   peerDependencies:
-    "@expo/vector-icons": ^14.0.0
     react: "*"
     react-native: "*"
-    react-native-vector-icons: ^10.0.0
   languageName: unknown
   linkType: soft
 
@@ -13533,25 +13492,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yargs-parser@npm:^20.2.2, yargs-parser@npm:^20.2.9":
+"yargs-parser@npm:^20.2.9":
   version: 20.2.9
   resolution: "yargs-parser@npm:20.2.9"
   checksum: 8bb69015f2b0ff9e17b2c8e6bfe224ab463dd00ca211eece72a4cd8a906224d2703fb8a326d36fdd0e68701e201b2a60ed7cf81ce0fd9b3799f9fe7745977ae3
-  languageName: node
-  linkType: hard
-
-"yargs@npm:^16.1.1":
-  version: 16.2.0
-  resolution: "yargs@npm:16.2.0"
-  dependencies:
-    cliui: ^7.0.2
-    escalade: ^3.1.1
-    get-caller-file: ^2.0.5
-    require-directory: ^2.1.1
-    string-width: ^4.2.0
-    y18n: ^5.0.5
-    yargs-parser: ^20.2.2
-  checksum: b14afbb51e3251a204d81937c86a7e9d4bdbf9a2bcee38226c900d00f522969ab675703bee2a6f99f8e20103f608382936034e64d921b74df82b63c07c5e8f59
   languageName: node
   linkType: hard
 

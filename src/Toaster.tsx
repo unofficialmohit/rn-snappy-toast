@@ -12,15 +12,18 @@ import {
   PanResponder,
   Platform,
   Vibration,
+  Image,
 } from 'react-native';
 import { setToastRef, type ToastOptions } from './toastService';
-import { Ionicons } from '@expo/vector-icons';
-
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DEFAULT_DURATION = 3000;
 const SWIPE_THRESHOLD = 100;
 const MAX_TOAST_WIDTH = 400;
-
+const checkMarkImage = require('./assets/check-circle.png');
+const crossImage = require('./assets/close.png');
+const errorImage = require('./assets/close-circle.png');
+const infoImage = require('./assets/info-circle.png');
+const warningImage = require('./assets/warning.png');
 export type ToastPosition = 'top' | 'bottom' | 'center';
 export type ToastAnimation =
   | 'slide'
@@ -427,15 +430,38 @@ const ToastItem = ({
 
     switch (type) {
       case 'success':
-        return <Ionicons name="checkmark-circle" size={24} color={iconColor} />;
+        return (
+          <Image
+            source={checkMarkImage}
+            style={{ height: 25, width: 25 }}
+            tintColor={iconColor}
+          />
+        );
+
       case 'error':
-        return <Ionicons name="close-circle" size={24} color={iconColor} />;
+        return (
+          <Image
+            source={errorImage}
+            style={{ height: 25, width: 25 }}
+            tintColor={iconColor}
+          />
+        );
       case 'info':
         return (
-          <Ionicons name="information-circle" size={24} color={iconColor} />
+          <Image
+            source={infoImage}
+            style={{ height: 25, width: 25 }}
+            tintColor={iconColor}
+          />
         );
       case 'warning':
-        return <Ionicons name="warning" size={24} color={iconColor} />;
+        return (
+          <Image
+            source={warningImage}
+            style={{ height: 25, width: 25 }}
+            tintColor={iconColor}
+          />
+        );
       default:
         return null;
     }
@@ -574,11 +600,17 @@ const ToastItem = ({
                   onPress={closeWithAnimation}
                   style={[styles.closeButton, customStyles?.closeButton]}
                 >
-                  <Ionicons
+                  <Image
+                    source={crossImage}
+                    style={{ height: 12, width: 12 }}
+                    tintColor={richColors ? '#64748B' : 'rgba(255,255,255,0.7)'}
+                  />
+
+                  {/* <Ionicons
                     name="close"
                     size={18}
-                    color={richColors ? '#64748B' : 'rgba(255,255,255,0.7)'}
-                  />
+                    color={}
+                  /> */}
                 </TouchableOpacity>
               )}
             </View>
