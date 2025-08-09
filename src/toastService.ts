@@ -1,5 +1,10 @@
 import type { Animated } from 'react-native';
-import type { ToastPosition, ToastAnimation, SwipeDirection } from './Toaster';
+import type {
+  ToastPosition,
+  ToastAnimation,
+  IconAnimationType,
+} from './Toaster';
+
 export type ToastOptions = {
   id?: number;
   richColors?: boolean;
@@ -16,14 +21,25 @@ export type ToastOptions = {
   swipeDirection?: SwipeDirection;
   swipeThreshold?: number;
   progressBar?: boolean;
-  hideCloseButton?: boolean;
+  showCloseButton?: boolean;
   opacity?: number;
   closeOnTap?: boolean;
   vibration?: boolean;
   customAnimation?: (animValue: Animated.Value) => any;
   backgroundColor?: string;
   textColor?: string;
+  iconAnimationType?: IconAnimationType;
+  progressBarColor?: string;
 };
+
+export type SwipeDirection =
+  | 'horizontal'
+  | 'vertical'
+  | 'left'
+  | 'right'
+  | 'up'
+  | 'down'
+  | ('left' | 'right' | 'up' | 'down')[];
 
 let toastRef: ((options: ToastOptions) => void) | null = null;
 

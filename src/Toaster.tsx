@@ -4,7 +4,7 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
+  TouchableWithoutFeedback,
   Easing,
   Dimensions,
   type ViewStyle,
@@ -15,15 +15,18 @@ import {
   Image,
 } from 'react-native';
 import { setToastRef, type ToastOptions } from './toastService';
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DEFAULT_DURATION = 3000;
 const SWIPE_THRESHOLD = 100;
 const MAX_TOAST_WIDTH = 400;
+
 const checkMarkImage = require('./assets/check-circle.png');
 const crossImage = require('./assets/close.png');
 const errorImage = require('./assets/close-circle.png');
 const infoImage = require('./assets/info-circle.png');
 const warningImage = require('./assets/warning.png');
+
 export type ToastPosition = 'top' | 'bottom' | 'center';
 export type ToastAnimation =
   | 'slide'
@@ -32,14 +35,12 @@ export type ToastAnimation =
   | 'slideFromLeft'
   | 'slideFromRight'
   | 'bounce'
-  | 'flip'
-  | 'zoom'
   | 'rotate'
-  | 'swing'
   | 'slideFromTop'
   | 'slideFromBottom'
-  | 'slideFromCenter'
   | 'slideFromCorner';
+
+export type IconAnimationType = 'pulse' | 'rotate' | 'bounce' | 'none';
 
 export type SwipeDirection =
   | 'horizontal'
@@ -59,7 +60,7 @@ interface ToasterProps {
   swipeEnabled?: boolean;
   swipeDirection?: SwipeDirection;
   swipeThreshold?: number;
-  hideCloseButton?: boolean;
+  showCloseButton?: boolean;
   customStyles?: {
     container?: ViewStyle;
     toast?: ViewStyle;
@@ -70,20 +71,24 @@ interface ToasterProps {
     closeButton?: ViewStyle;
   };
   richColors?: boolean;
+  iconAnimationType?: IconAnimationType;
+  progressBarColor?: string;
 }
 
 export const Toaster = ({
   position = 'top',
-  offset = 50,
+  offset = Platform.OS === 'android' ? 40 : 50,
   maxToasts = 3,
   animationType = 'slide',
   animationDuration = 300,
   swipeEnabled = true,
   swipeDirection = 'horizontal',
   swipeThreshold = SWIPE_THRESHOLD,
-  hideCloseButton = false,
+  showCloseButton = false,
   customStyles = {},
   richColors = false,
+  iconAnimationType = 'none',
+  progressBarColor,
 }: ToasterProps = {}) => {
   const [toasts, setToasts] = useState<ToastOptions[]>([]);
   const toastIdCounter = useRef(0);
@@ -92,15 +97,16 @@ export const Toaster = ({
     (options: ToastOptions) => {
       const id = ++toastIdCounter.current;
       const _position = options.position || position;
-      const animation = options.animationType || animationType;
 
       setToasts((prev) => {
         const newToast = {
           ...options,
           id,
           _position,
-          animationType: animation,
-          hideCloseButton: options.hideCloseButton ?? hideCloseButton,
+          animationType: options.animationType || animationType,
+          showCloseButton: options.showCloseButton ?? showCloseButton,
+          iconAnimationType: options.iconAnimationType || iconAnimationType,
+          progressBarColor: options.progressBarColor || progressBarColor,
         };
 
         const updatedToasts = [...prev, newToast];
@@ -109,8 +115,14 @@ export const Toaster = ({
           : updatedToasts;
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [maxToasts, animationType, position, hideCloseButton]
+    [
+      maxToasts,
+      position,
+      showCloseButton,
+      animationType,
+      iconAnimationType,
+      progressBarColor,
+    ]
   );
 
   useEffect(() => {
@@ -121,8 +133,6 @@ export const Toaster = ({
   const hideToast = useCallback((id: number) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
-
-  if (toasts.length === 0) return null;
 
   return (
     <View style={styles.globalContainer} pointerEvents="box-none">
@@ -140,6 +150,8 @@ export const Toaster = ({
           swipeDirection={toast.swipeDirection || swipeDirection}
           swipeThreshold={toast.swipeThreshold || swipeThreshold}
           richColors={toast.richColors ?? richColors}
+          iconAnimationType={toast.iconAnimationType as IconAnimationType}
+          progressBarColor={toast.progressBarColor || progressBarColor}
         />
       ))}
     </View>
@@ -158,6 +170,8 @@ interface ToastItemProps {
   swipeDirection: SwipeDirection;
   swipeThreshold: number;
   richColors: boolean;
+  iconAnimationType: IconAnimationType;
+  progressBarColor?: string;
 }
 
 const ToastItem = ({
@@ -172,6 +186,8 @@ const ToastItem = ({
   swipeDirection,
   swipeThreshold,
   richColors,
+  iconAnimationType,
+  progressBarColor,
 }: ToastItemProps) => {
   const {
     message,
@@ -182,7 +198,7 @@ const ToastItem = ({
     onPress,
     renderContent,
     progressBar = false,
-    hideCloseButton = false,
+    showCloseButton = true,
     opacity = 1,
     closeOnTap = true,
     vibration,
@@ -193,9 +209,14 @@ const ToastItem = ({
 
   const animatedValue = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(1)).current;
+  const iconAnim = useRef(
+    new Animated.Value(iconAnimationType === 'pulse' ? 1 : 0)
+  ).current;
   const pan = useRef(new Animated.ValueXY()).current;
   const isClosing = useRef(false);
   const hasPressed = useRef(false);
+  const iconAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const velocityThreshold = 0.5; // Minimum velocity to trigger swipe dismiss
 
   const getAllowedDirections = (): ('left' | 'right' | 'up' | 'down')[] => {
     if (Array.isArray(swipeDirection)) return swipeDirection;
@@ -227,13 +248,13 @@ const ToastItem = ({
       onPanResponderMove: (_, gestureState) => {
         const { dx, dy } = gestureState;
 
+        // Only move in allowed directions
         if (
           allowedDirections.includes('left') ||
           allowedDirections.includes('right')
         ) {
           pan.x.setValue(dx);
         }
-
         if (
           allowedDirections.includes('up') ||
           allowedDirections.includes('down')
@@ -246,30 +267,33 @@ const ToastItem = ({
         let shouldDismiss = false;
         let dismissDirection: 'left' | 'right' | 'up' | 'down' | null = null;
 
-        // Fixed swipe direction detection with proper thresholds
-        const isLeft =
+        // Check swipe with velocity and distance thresholds
+        if (
           allowedDirections.includes('left') &&
-          (dx < -swipeThreshold || (dx < -50 && vx < -0.5));
-        const isRight =
-          allowedDirections.includes('right') &&
-          (dx > swipeThreshold || (dx > 50 && vx > 0.5));
-        const isUp =
-          allowedDirections.includes('up') &&
-          (dy < -swipeThreshold || (dy < -50 && vy < -0.5));
-        const isDown =
-          allowedDirections.includes('down') &&
-          (dy > swipeThreshold || (dy > 50 && vy > 0.5));
-
-        if (isLeft) {
+          (dx < -swipeThreshold ||
+            (vx < -velocityThreshold && dx < -swipeThreshold / 2))
+        ) {
           shouldDismiss = true;
           dismissDirection = 'left';
-        } else if (isRight) {
+        } else if (
+          allowedDirections.includes('right') &&
+          (dx > swipeThreshold ||
+            (vx > velocityThreshold && dx > swipeThreshold / 2))
+        ) {
           shouldDismiss = true;
           dismissDirection = 'right';
-        } else if (isUp) {
+        } else if (
+          allowedDirections.includes('up') &&
+          (dy < -swipeThreshold ||
+            (vy < -velocityThreshold && dy < -swipeThreshold / 2))
+        ) {
           shouldDismiss = true;
           dismissDirection = 'up';
-        } else if (isDown) {
+        } else if (
+          allowedDirections.includes('down') &&
+          (dy > swipeThreshold ||
+            (vy > velocityThreshold && dy > swipeThreshold / 2))
+        ) {
           shouldDismiss = true;
           dismissDirection = 'down';
         }
@@ -290,7 +314,6 @@ const ToastItem = ({
             duration: 300,
             useNativeDriver: true,
           }).start(() => {
-            // Clean up pan listeners before closing
             pan.x.removeAllListeners();
             pan.y.removeAllListeners();
             onClose();
@@ -334,6 +357,11 @@ const ToastItem = ({
       useNativeDriver: true,
     }).start();
 
+    // Start icon animation if enabled
+    if (iconAnimationType !== 'none') {
+      startIconAnimation();
+    }
+
     const timer = setTimeout(() => {
       if (!hasPressed.current) closeWithAnimation();
     }, duration);
@@ -341,16 +369,116 @@ const ToastItem = ({
     return () => {
       clearTimeout(timer);
       progressAnim.stopAnimation();
-      // Clean up pan listeners on unmount
       pan.x.removeAllListeners?.();
       pan.y.removeAllListeners?.();
+
+      // Stop icon animation
+      if (iconAnimationRef.current) {
+        iconAnimationRef.current.stop();
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const startIconAnimation = () => {
+    if (iconAnimationRef.current) {
+      iconAnimationRef.current.stop();
+    }
+
+    const animationConfig = {
+      duration: 1000,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    };
+
+    switch (iconAnimationType) {
+      case 'pulse':
+        iconAnimationRef.current = Animated.loop(
+          Animated.sequence([
+            Animated.timing(iconAnim, {
+              ...animationConfig,
+              toValue: 1.2,
+            }),
+            Animated.timing(iconAnim, {
+              ...animationConfig,
+              toValue: 1,
+            }),
+          ])
+        );
+        break;
+
+      case 'rotate':
+        iconAnimationRef.current = Animated.loop(
+          Animated.timing(iconAnim, {
+            ...animationConfig,
+            toValue: 1,
+          })
+        );
+        break;
+
+      case 'bounce':
+        iconAnimationRef.current = Animated.loop(
+          Animated.sequence([
+            Animated.timing(iconAnim, {
+              ...animationConfig,
+              toValue: -10,
+            }),
+            Animated.timing(iconAnim, {
+              ...animationConfig,
+              toValue: 0,
+            }),
+          ])
+        );
+        break;
+
+      default:
+        return;
+    }
+
+    if (iconAnimationRef.current) {
+      iconAnimationRef.current.start();
+    }
+  };
+
+  const getIconAnimationStyle = () => {
+    if (iconAnimationType === 'none') return {};
+
+    switch (iconAnimationType) {
+      case 'pulse':
+        return {
+          transform: [{ scale: iconAnim }],
+        };
+
+      case 'rotate':
+        return {
+          transform: [
+            {
+              rotate: iconAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0deg', '360deg'],
+              }),
+            },
+          ],
+        };
+
+      case 'bounce':
+        return {
+          transform: [{ translateY: iconAnim }],
+        };
+
+      default:
+        return {};
+    }
+  };
+
   const closeWithAnimation = () => {
     if (isClosing.current) return;
     isClosing.current = true;
+
+    // Stop icon animation when closing
+    if (iconAnimationRef.current) {
+      iconAnimationRef.current.stop();
+    }
 
     Animated.timing(animatedValue, {
       toValue: 0,
@@ -358,7 +486,6 @@ const ToastItem = ({
       easing: getEasingFunction(animationType, false),
       useNativeDriver: true,
     }).start(() => {
-      // Clean up pan listeners before closing
       pan.x.removeAllListeners?.();
       pan.y.removeAllListeners?.();
       onClose();
@@ -437,7 +564,6 @@ const ToastItem = ({
             tintColor={iconColor}
           />
         );
-
       case 'error':
         return (
           <Image
@@ -526,97 +652,96 @@ const ToastItem = ({
 
   return (
     <Animated.View
-      style={[
-        getPositionStyle(),
-        {
-          transform: pan.getTranslateTransform(),
-        },
-      ]}
+      style={[getPositionStyle(), { transform: pan.getTranslateTransform() }]}
       pointerEvents="box-none"
-      {...panResponder.panHandlers} // Moved pan handlers to outer container
+      {...panResponder.panHandlers}
     >
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={handlePress}
-        style={styles.touchableContainer}
-      >
-        <Animated.View
-          style={[
-            styles.toast,
-            { backgroundColor: getBackgroundColor() },
-            getAnimationStyle(),
-            customStyles?.toast,
-          ]}
-        >
-          {progressBar && (
-            <Animated.View
-              style={[
-                styles.progressBar,
-                {
-                  width: progressAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }),
-                  backgroundColor: `rgba(255,255,255,${opacity > 0.7 ? 0.5 : 0.3})`,
-                },
-                customStyles?.progress,
-              ]}
-            />
-          )}
+      <TouchableWithoutFeedback onPress={handlePress}>
+        <View style={styles.touchableContainer} pointerEvents="box-none">
+          <Animated.View
+            style={[
+              styles.toast,
+              { backgroundColor: getBackgroundColor() },
+              getAnimationStyle(),
+              customStyles?.toast,
+            ]}
+            pointerEvents="auto"
+          >
+            {progressBar && (
+              <Animated.View
+                style={[
+                  styles.progressBar,
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0%', '100%'],
+                    }),
+                    backgroundColor:
+                      progressBarColor || richColors
+                        ? getTextColor()
+                        : `rgba(255,255,255,${opacity > 0.7 ? 0.5 : 0.3})`,
+                  },
+                  customStyles?.progress,
+                ]}
+              />
+            )}
 
-          {renderContent ? (
-            renderContent()
-          ) : (
-            <View style={styles.contentContainer}>
-              {getIcon() && (
-                <View style={[styles.icon, customStyles?.icon]}>
-                  {getIcon()}
-                </View>
-              )}
-              <View style={styles.textContainer}>
-                {title && (
-                  <Text
+            {renderContent ? (
+              renderContent()
+            ) : (
+              <View style={styles.contentContainer}>
+                {getIcon() && (
+                  <Animated.View
                     style={[
-                      styles.title,
-                      { color: getTextColor() },
-                      customStyles?.title,
+                      styles.icon,
+                      customStyles?.icon,
+                      getIconAnimationStyle(),
                     ]}
                   >
-                    {title}
-                  </Text>
+                    {getIcon()}
+                  </Animated.View>
                 )}
-                <Text
-                  style={[
-                    styles.toastText,
-                    { color: getTextColor() },
-                    customStyles?.text,
-                  ]}
-                >
-                  {message}
-                </Text>
+                <View style={styles.textContainer}>
+                  {title && (
+                    <Text
+                      style={[
+                        styles.title,
+                        { color: getTextColor() },
+                        customStyles?.title,
+                      ]}
+                    >
+                      {title}
+                    </Text>
+                  )}
+                  <Text
+                    style={[
+                      styles.toastText,
+                      { color: getTextColor() },
+                      customStyles?.text,
+                    ]}
+                  >
+                    {message}
+                  </Text>
+                </View>
+                {showCloseButton && (
+                  <TouchableWithoutFeedback
+                    onPress={closeWithAnimation}
+                    style={[styles.closeButton, customStyles?.closeButton]}
+                  >
+                    <Image
+                      source={crossImage}
+                      style={{ height: 12, width: 12 }}
+                      tintColor={
+                        richColors ? '#64748B' : 'rgba(255,255,255,0.7)'
+                      }
+                    />
+                  </TouchableWithoutFeedback>
+                )}
               </View>
-              {!hideCloseButton && (
-                <TouchableOpacity
-                  onPress={closeWithAnimation}
-                  style={[styles.closeButton, customStyles?.closeButton]}
-                >
-                  <Image
-                    source={crossImage}
-                    style={{ height: 12, width: 12 }}
-                    tintColor={richColors ? '#64748B' : 'rgba(255,255,255,0.7)'}
-                  />
-
-                  {/* <Ionicons
-                    name="close"
-                    size={18}
-                    color={}
-                  /> */}
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-        </Animated.View>
-      </TouchableOpacity>
+            )}
+          </Animated.View>
+        </View>
+      </TouchableWithoutFeedback>
     </Animated.View>
   );
 };
@@ -624,12 +749,7 @@ const ToastItem = ({
 const getEasingFunction = (type: ToastAnimation, isEntering: boolean) => {
   switch (type) {
     case 'bounce':
-      return Easing.elastic(isEntering ? 1 : 0.5);
-    case 'swing':
-      return Easing.bezier(0.25, 0.1, 0.25, 1);
-    case 'flip':
-      return Easing.out(Easing.cubic);
-    case 'zoom':
+      return isEntering ? Easing.out(Easing.quad) : Easing.in(Easing.quad);
     case 'rotate':
       return Easing.out(Easing.exp);
     default:
@@ -655,7 +775,7 @@ const getBaseAnimation = (
     case 'scale':
       const scale = animValue.interpolate({
         inputRange,
-        outputRange: [0.7, 1],
+        outputRange: [0.85, 1],
       });
       return { transform: [{ scale }] };
 
@@ -678,41 +798,18 @@ const getBaseAnimation = (
 
     case 'bounce':
       const bounceY = animValue.interpolate({
-        inputRange: [0, 0.6, 0.75, 0.9, 1],
+        inputRange: [0, 0.4, 0.6, 0.8, 1],
         outputRange:
-          position === 'top' ? [-300, 25, -10, 5, 0] : [300, -25, 10, -5, 0],
+          position === 'top' ? [-300, 10, -5, 2, 0] : [300, -10, 5, -2, 0],
       });
       return { transform: [{ translateY: bounceY }] };
-
-    case 'flip':
-      const rotateY = animValue.interpolate({
-        inputRange: [0, 0.5, 1],
-        outputRange: ['90deg', '0deg', '0deg'],
-      });
-      return {
-        transform: [{ perspective: 1000 }, { rotateY }],
-      };
-
-    case 'zoom':
-      const zoomScale = animValue.interpolate({
-        inputRange,
-        outputRange: [0.3, 1],
-      });
-      return { transform: [{ scale: zoomScale }] };
 
     case 'rotate':
       const rotate = animValue.interpolate({
         inputRange,
-        outputRange: ['-180deg', '0deg'],
+        outputRange: ['0deg', '360deg'],
       });
       return { transform: [{ rotate }] };
-
-    case 'swing':
-      const swingRotate = animValue.interpolate({
-        inputRange: [0, 0.2, 0.4, 0.6, 0.8, 1],
-        outputRange: ['-30deg', '15deg', '-10deg', '5deg', '-2deg', '0deg'],
-      });
-      return { transform: [{ rotate: swingRotate }] };
 
     case 'slideFromTop':
       const translateYTop = animValue.interpolate({
@@ -727,19 +824,6 @@ const getBaseAnimation = (
         outputRange: position === 'bottom' ? [100, 0] : [SCREEN_HEIGHT, 0],
       });
       return { transform: [{ translateY: translateYBottom }] };
-
-    case 'slideFromCenter':
-      return {
-        opacity: animValue,
-        transform: [
-          {
-            scale: animValue.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.7, 1],
-            }),
-          },
-        ],
-      };
 
     case 'slideFromCorner':
       return {
@@ -772,8 +856,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 99999,
-    elevation: 99999,
+    zIndex: 999999,
+    elevation: 999999,
     pointerEvents: 'box-none',
   },
   touchableContainer: {
@@ -782,8 +866,9 @@ const styles = StyleSheet.create({
     maxWidth: MAX_TOAST_WIDTH,
   },
   toast: {
-    padding: 16,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 20,
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
@@ -801,16 +886,16 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 3,
   },
   toastText: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 15,
   },
   title: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   icon: {
     marginRight: 8,

@@ -1,4 +1,4 @@
-import { View, StyleSheet, Button } from 'react-native';
+import { View, StyleSheet, Button, Modal } from 'react-native';
 import { Toaster, showToast } from 'rn-snappy-toast';
 
 export default function App() {
@@ -10,17 +10,19 @@ export default function App() {
           title="Click to show Error toast"
           onPress={() =>
             showToast({
-              message: `User data is not updated, please try again later`,
+              message: `User data is not updated, please try again later and if issue persist contact adming asap`,
               duration: 5000,
               type: 'error',
               position: 'top',
               title: 'Error',
-              animationType: 'slideFromTop',
+              animationType: 'scale',
+              progressBar: true,
               vibration: true,
-              hideCloseButton: true,
               closeOnTap: true,
-              swipeDirection: 'up',
+              showCloseButton: false,
               richColors: true,
+              iconAnimationType: 'pulse',
+              swipeDirection: 'horizontal',
             })
           }
         />
@@ -34,8 +36,10 @@ export default function App() {
               position: 'bottom',
               title: 'Information',
               animationType: 'slide',
+              progressBarColor: 'red',
               progressBar: true,
               richColors: true,
+              iconAnimationType: 'none',
             })
           }
         />
@@ -48,9 +52,11 @@ export default function App() {
               type: 'success',
               position: 'top',
               title: 'Success',
-              animationType: 'slideFromLeft',
+              animationType: 'scale',
               progressBar: true,
               richColors: true,
+              progressBarColor: 'green',
+              iconAnimationType: 'pulse',
             })
           }
         />
@@ -66,6 +72,7 @@ export default function App() {
               animationType: 'slideFromLeft',
               progressBar: true,
               richColors: true,
+              closeOnTap: false,
             })
           }
         />
