@@ -23,6 +23,13 @@ npm install rn-snappy-toast
 yarn add rn-snappy-toast
 ```
 
+## Screenshots
+<img width="1080" height="2400" alt="Screenshot_1754738179" src="https://github.com/user-attachments/assets/91c66ba6-5335-46fe-9bec-94d566cc1e88" />
+<img width="1080" height="2400" alt="Screenshot_1754738177" src="https://github.com/user-attachments/assets/62c1604b-53bb-48fd-9b38-897f09b3ea20" />
+<img width="1080" height="2400" alt="Screenshot_1754738170" src="https://github.com/user-attachments/assets/538efe99-f6eb-4427-8f9d-5f5bd2646d24" />
+<img width="1080" height="2400" alt="Screenshot_1754738155" src="https://github.com/user-attachments/assets/2ce4c58e-044c-4642-bc31-811bc1aece81" />
+
+
 ---
 
 ## Basic Usage 🏁
