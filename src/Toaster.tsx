@@ -14,7 +14,7 @@ import {
   Vibration,
   Image,
 } from 'react-native';
-import { setToastRef, type ToastOptions } from './toastService';
+import { setToastRef, type ToastOptions } from './toastService'; // Removed unused imports
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DEFAULT_DURATION = 3000;
@@ -40,7 +40,13 @@ export type ToastAnimation =
   | 'slideFromBottom'
   | 'slideFromCorner';
 
-export type IconAnimationType = 'pulse' | 'rotate' | 'bounce' | 'none';
+export type IconAnimationType =
+  | 'pulse'
+  | 'rotate'
+  | 'bounce'
+  | 'shake'
+  | 'tada'
+  | 'none';
 
 export type SwipeDirection =
   | 'horizontal'
@@ -114,6 +120,7 @@ export const Toaster = ({
           ? updatedToasts.slice(updatedToasts.length - maxToasts)
           : updatedToasts;
       });
+      return id; // Return ID for programmatic dismissal
     },
     [
       maxToasts,
@@ -125,14 +132,18 @@ export const Toaster = ({
     ]
   );
 
-  useEffect(() => {
-    setToastRef(show);
-    return () => setToastRef(null);
-  }, [show]);
-
   const hideToast = useCallback((id: number) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
+
+  const hideAllToasts = useCallback(() => {
+    setToasts([]);
+  }, []);
+
+  useEffect(() => {
+    setToastRef(show, hideToast, hideAllToasts);
+    return () => setToastRef(null, null, null);
+  }, [show, hideToast, hideAllToasts]);
 
   return (
     <View style={styles.globalContainer} pointerEvents="box-none">
@@ -216,7 +227,7 @@ const ToastItem = ({
   const isClosing = useRef(false);
   const hasPressed = useRef(false);
   const iconAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
-  const velocityThreshold = 0.5; // Minimum velocity to trigger swipe dismiss
+  const velocityThreshold = 0.5;
 
   const getAllowedDirections = (): ('left' | 'right' | 'up' | 'down')[] => {
     if (Array.isArray(swipeDirection)) return swipeDirection;
@@ -248,19 +259,24 @@ const ToastItem = ({
       onPanResponderMove: (_, gestureState) => {
         const { dx, dy } = gestureState;
 
-        // Only move in allowed directions
+        // Reset non-allowed directions
+        let newDx = dx;
+        let newDy = dy;
+
         if (
-          allowedDirections.includes('left') ||
-          allowedDirections.includes('right')
+          !allowedDirections.includes('left') &&
+          !allowedDirections.includes('right')
         ) {
-          pan.x.setValue(dx);
+          newDx = 0;
         }
         if (
-          allowedDirections.includes('up') ||
-          allowedDirections.includes('down')
+          !allowedDirections.includes('up') &&
+          !allowedDirections.includes('down')
         ) {
-          pan.y.setValue(dy);
+          newDy = 0;
         }
+
+        pan.setValue({ x: newDx, y: newDy });
       },
       onPanResponderRelease: (_, gesture) => {
         const { dx, dy, vx, vy } = gesture;
@@ -337,7 +353,7 @@ const ToastItem = ({
   ).current;
 
   useEffect(() => {
-    if (vibration && Platform.OS === 'android') {
+    if (vibration) {
       Vibration.vibrate(50);
     }
 
@@ -357,7 +373,6 @@ const ToastItem = ({
       useNativeDriver: true,
     }).start();
 
-    // Start icon animation if enabled
     if (iconAnimationType !== 'none') {
       startIconAnimation();
     }
@@ -372,7 +387,6 @@ const ToastItem = ({
       pan.x.removeAllListeners?.();
       pan.y.removeAllListeners?.();
 
-      // Stop icon animation
       if (iconAnimationRef.current) {
         iconAnimationRef.current.stop();
       }
@@ -431,6 +445,70 @@ const ToastItem = ({
         );
         break;
 
+      case 'shake':
+        iconAnimationRef.current = Animated.loop(
+          Animated.sequence([
+            Animated.timing(iconAnim, {
+              toValue: -5,
+              duration: 50,
+              useNativeDriver: true,
+            }),
+            Animated.timing(iconAnim, {
+              toValue: 5,
+              duration: 50,
+              useNativeDriver: true,
+            }),
+            Animated.timing(iconAnim, {
+              toValue: -5,
+              duration: 50,
+              useNativeDriver: true,
+            }),
+            Animated.timing(iconAnim, {
+              toValue: 5,
+              duration: 50,
+              useNativeDriver: true,
+            }),
+            Animated.timing(iconAnim, {
+              toValue: 0,
+              duration: 50,
+              useNativeDriver: true,
+            }),
+          ])
+        );
+        break;
+
+      case 'tada':
+        iconAnimationRef.current = Animated.loop(
+          Animated.sequence([
+            Animated.timing(iconAnim, {
+              toValue: 0.9,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(iconAnim, {
+              toValue: 1.1,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(iconAnim, {
+              toValue: 0.9,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(iconAnim, {
+              toValue: 1.1,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(iconAnim, {
+              toValue: 1,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+          ])
+        );
+        break;
+
       default:
         return;
     }
@@ -466,6 +544,16 @@ const ToastItem = ({
           transform: [{ translateY: iconAnim }],
         };
 
+      case 'shake':
+        return {
+          transform: [{ translateX: iconAnim }],
+        };
+
+      case 'tada':
+        return {
+          transform: [{ scale: iconAnim }],
+        };
+
       default:
         return {};
     }
@@ -475,7 +563,6 @@ const ToastItem = ({
     if (isClosing.current) return;
     isClosing.current = true;
 
-    // Stop icon animation when closing
     if (iconAnimationRef.current) {
       iconAnimationRef.current.stop();
     }
