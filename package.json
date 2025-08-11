@@ -1,6 +1,6 @@
 {
   "name": "rn-snappy-toast",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "rn-snappy-toast is a lightweight, fast, and fully customizable toast notification library for React Native.It’s designed to help you deliver instant, non-intrusive, and delightful feedback to your users — with minimal setup and maximum flexibility.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
