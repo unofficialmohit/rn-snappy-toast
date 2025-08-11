@@ -24,10 +24,15 @@ yarn add rn-snappy-toast
 ```
 
 ## Screenshots
-<img width="1080" height="2400" alt="Screenshot_1754738179" src="https://github.com/user-attachments/assets/91c66ba6-5335-46fe-9bec-94d566cc1e88" />
-<img width="1080" height="2400" alt="Screenshot_1754738177" src="https://github.com/user-attachments/assets/62c1604b-53bb-48fd-9b38-897f09b3ea20" />
-<img width="1080" height="2400" alt="Screenshot_1754738170" src="https://github.com/user-attachments/assets/538efe99-f6eb-4427-8f9d-5f5bd2646d24" />
-<img width="1080" height="2400" alt="Screenshot_1754738155" src="https://github.com/user-attachments/assets/2ce4c58e-044c-4642-bc31-811bc1aece81" />
+
+| Screenshot 1 | Screenshot 2 |
+|--------------|--------------|
+| <img src="https://github.com/user-attachments/assets/2da6f279-2a7e-4e3f-a565-2dda8546bd6d" width="300" /> | <img src="https://github.com/user-attachments/assets/9f8b9e05-fd6a-4d52-8b71-f7cfcb91d97f" width="300" /> |
+
+| Screenshot 3 | Screenshot 4 |
+|--------------|--------------|
+| <img src="https://github.com/user-attachments/assets/db10b3a1-8e5b-487a-99df-6fb90c1afbad" width="300" /> | <img src="https://github.com/user-attachments/assets/58e9a156-0b6e-4054-bbce-a7b6011199d5" width="300" /> |
+
 
 
 ---
